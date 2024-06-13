@@ -11,6 +11,7 @@ import { Comment } from './comments/entities/comment.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import * as Joi from 'joi';
+import { CacheModule, CacheModuleAsyncOptions } from '@nestjs/cache-manager';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -29,6 +30,14 @@ const typeOrmModuleOptions = {
   inject: [ConfigService],
 };
 
+const cacheModuleOptions: CacheModuleAsyncOptions = {
+  imports: [ConfigModule],
+  useFactory: async (configService: ConfigService) => ({
+    ttl: 3600,
+  }),
+  inject: [ConfigService],
+};
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,6 +52,7 @@ const typeOrmModuleOptions = {
         DB_SYNC: Joi.boolean().required(),
       }),
     }),
+    CacheModule.registerAsync(cacheModuleOptions),
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     UsersModule,
     PostsModule,

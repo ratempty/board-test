@@ -30,7 +30,7 @@ export class Post {
   @Column({ type: 'int', unsigned: true, default: 0 })
   viewCnt: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', nullable: true })
   imgUrl: string;
 
   @Column({ default: false })
@@ -41,6 +41,9 @@ export class Post {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ type: 'int', nullable: false })
+  userId: number;
 
   @ManyToOne(() => User, (user) => user.post)
   user: User;

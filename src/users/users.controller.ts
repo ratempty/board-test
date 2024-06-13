@@ -56,7 +56,7 @@ export class UsersController {
     );
     res.cookie('Authorization', accessToken, {
       httpOnly: true,
-      maxAge: 3000,
+      maxAge: 60 * 60 * 1000,
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
@@ -78,6 +78,7 @@ export class UsersController {
       httpOnly: true,
       expires: new Date(Date.now() - 1),
     });
+
     return { message: '로그아웃되었습니다.' };
   }
 

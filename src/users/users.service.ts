@@ -96,20 +96,13 @@ export class UsersService {
     return user;
   }
   // 회원정보수정
-  async updateUser(
-    userId: number,
-    updateUserDto: UpdateUserDto,
-  ): Promise<User> {
-    const user = await this.userRepository.findOneBy({ id: userId });
-
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
-    }
+  async updateUser(user: User, updateUserDto: UpdateUserDto): Promise<User> {
+    await this.userRepository.findOneBy({ id: user.id });
 
     const hashedPassword = await hash(updateUserDto.password, 10);
 
     await this.userRepository.update(
-      { id: userId },
+      { id: user.id },
       {
         email: updateUserDto.email,
         nickname: updateUserDto.nickname,
@@ -119,7 +112,7 @@ export class UsersService {
 
     return await this.userRepository.findOne({
       select: ['id', 'email', 'nickname'],
-      where: { id: userId },
+      where: { id: user.id },
     });
   }
 

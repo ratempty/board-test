@@ -21,19 +21,29 @@ import { UpdateUserDto } from './dto/updateUser.dto';
 
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserInfo } from './utils/userInfo.decorator';
 
+@ApiTags('USER')
 @Controller('user')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // 회원 정보 조회
+  @ApiOperation({
+    summary: '회원 정보 조회',
+    description: '유저 정보를 조회합니다.',
+  })
+  @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Get('profile/:userId')
   async findUser(@Param('userId') userId: number): Promise<User> {
     return await this.usersService.findUser(userId);
   }
 
-  // 회원가입
+  @ApiOperation({
+    summary: '회원 가입',
+    description: 'user 정보를 추가합니다.',
+  })
   @Post('register')
   async register(@Body() RegisterDto: RegisterDto) {
     return await this.usersService.register(
@@ -44,7 +54,10 @@ export class UsersController {
     );
   }
 
-  // 로그인
+  @ApiOperation({
+    summary: '로그인',
+    description: '로그인을 진행합니다.',
+  })
   @Post('login')
   async login(
     @Body() loginDto: LoginDto,
@@ -65,8 +78,12 @@ export class UsersController {
     return accessToken;
   }
 
-  // 로그아웃
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: '로그아웃',
+    description: '로그아웃 요청시 토큰을 만료시킵니다.',
+  })
+  @ApiBearerAuth()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Res({ passthrough: true }) res: Response) {
@@ -82,26 +99,26 @@ export class UsersController {
     return { message: '로그아웃되었습니다.' };
   }
 
-  // 회원 정보 수정
   @UseGuards(AuthGuard('jwt'))
-  @Patch('update/:userId')
+  @ApiOperation({
+    summary: '회원 정보 수정',
+    description: '회원 정보를 업데이트합니다.',
+  })
+  @ApiBearerAuth()
+  @Patch('update')
   async updateUser(
-    @Param('userId') userId: number,
+    @UserInfo() user: User,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const updatedUser = await this.usersService.updateUser(
-      userId,
-      updateUserDto,
-    );
-
-    if (!updatedUser) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
-    }
+    const updatedUser = await this.usersService.updateUser(user, updateUserDto);
 
     return updatedUser;
   }
 
-  // 회원탈퇴
+  @ApiOperation({
+    summary: '회원탈퇴',
+    description: '회원정보를 삭제합니다.',
+  })
   @Delete('delete/:userId')
   async deleteUser(@Param('userId') userId: number) {
     await this.usersService.deleteUser(userId);

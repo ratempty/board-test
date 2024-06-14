@@ -26,13 +26,28 @@ export class Comment {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.comment)
+  @Column({ type: 'varchar' })
+  userNickname: string;
+
+  @Column({ type: 'int' })
+  userId: number;
+
+  @Column({ type: 'int' })
+  postId: number;
+
+  @Column({ type: 'int', nullable: true, unique: true })
+  parentCommentId: number;
+
+  @Column({ default: false })
+  isDelete: boolean;
+
+  @ManyToOne(() => User, (user) => user.comment, { onDelete: 'CASCADE' })
   user: User;
 
-  @ManyToOne(() => Post, (post) => post.comment)
+  @ManyToOne(() => Post, (post) => post.comment, { onDelete: 'CASCADE' })
   post: Post;
 
-  @ManyToOne(() => Comment, (comment) => comment.replies, { nullable: true })
+  @ManyToOne(() => Comment, (comment) => comment.replies)
   parentComment: Comment;
 
   @OneToMany(() => Comment, (comment) => comment.parentComment)

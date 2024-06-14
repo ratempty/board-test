@@ -25,7 +25,12 @@ export class PostsService {
   ) {}
 
   // 카테고리별 게시글 조회
-  async getAllPost(category: PostCategory, orderBy: string, period: string) {
+  async getAllPost(
+    category: PostCategory,
+    orderBy: string,
+    period: string,
+    user: User,
+  ) {
     const order = orderBy === 'popular' ? 'viewCnt' : 'createdAt';
     let where = { category: category, isDelete: false };
 
@@ -50,13 +55,24 @@ export class PostsService {
       }
     }
 
-    const posts = await this.postRepository.find({
-      select: ['title', 'userNickname', 'viewCnt', 'createdAt', 'updatedAt'],
+    let posts = await this.postRepository.find({
       where,
       order: {
         [order]: 'DESC',
       },
     });
+
+    if (user.role !== Role.Admin) {
+      posts = posts.filter((post) => {
+        if (post.category === PostCategory.Inquiry) {
+          return post.userId === user.id;
+        }
+        return (
+          post.category === PostCategory.Notice ||
+          post.category === PostCategory.QNA
+        );
+      });
+    }
 
     return posts;
   }
@@ -81,11 +97,11 @@ export class PostsService {
 
     // 1:1문의글 본인확인 및 관리자 확인
     if (
-      post.category === PostCategory.QNA &&
+      post.category === PostCategory.Inquiry &&
       post.userId !== userId &&
       user.role !== Role.Admin
     ) {
-      throw new ForbiddenException('1:1문의는 본인의 글만 확인할 수 있습니다.');
+      throw new ForbiddenException('글을 확인할 권한이 없습니다.');
     }
 
     // 조회수 증가 로직
@@ -103,25 +119,45 @@ export class PostsService {
   }
 
   // 글 검색 - 전체 (제목 + 작성자)
-  async searchPosts(query: string, target?: string) {
+  async searchPosts(query: string, user: User, target?: string) {
     let where: any = [
-      { title: Like(`%${query}%`) },
-      { userNickname: Like(`%${query}%`) },
+      { title: Like(`%${query}%`), isDelete: false },
+      { userNickname: Like(`%${query}%`), isDelete: false },
     ];
 
     if (target === 'title') {
-      where = { title: Like(`%${query}%`) };
+      where = { title: Like(`%${query}%`), isDelete: false };
     } else if (target === 'user') {
-      where = { userNickname: Like(`%${query}%`) };
+      where = { userNickname: Like(`%${query}%`), isDelete: false };
     }
 
-    const posts = await this.postRepository.find({
-      select: ['title', 'userNickname', 'viewCnt', 'createdAt', 'updatedAt'],
+    let posts = await this.postRepository.find({
+      select: [
+        'title',
+        'userNickname',
+        'viewCnt',
+        'createdAt',
+        'updatedAt',
+        'userId',
+        'category',
+      ],
       where,
     });
 
+    if (user.role !== Role.Admin) {
+      posts = posts.filter((post) => {
+        if (post.category == PostCategory.Inquiry) {
+          return post.userId === user.id;
+        }
+        return (
+          post.category == PostCategory.Notice ||
+          post.category == PostCategory.QNA
+        );
+      });
+    }
     return posts;
   }
+
   //공지사항 생성
   async createNotice(
     title: string,
@@ -176,13 +212,17 @@ export class PostsService {
   }
 
   //Q&A or 1:1 수정
-  async updatePost(title: string, content: string, postId: number) {
+  async updatePost(title: string, content: string, postId: number, user: User) {
     const post = await this.postRepository.findOne({
       where: { id: postId, isDelete: false },
     });
 
     if (!post) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    }
+
+    if (post.userId !== user.id) {
+      throw new ForbiddenException('본인의 글만 수정할 수 있습니다.');
     }
 
     const updatedPost = await this.postRepository.update(
@@ -195,7 +235,9 @@ export class PostsService {
 
   //공지사항 삭제
   async deleteNotice(postId: number) {
-    const notice = await this.postRepository.findOne({ where: { id: postId } });
+    const notice = await this.postRepository.findOne({
+      where: { id: postId, isDelete: false },
+    });
 
     if (!notice) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
@@ -205,11 +247,17 @@ export class PostsService {
   }
 
   //Q&A or 1:1 삭제
-  async deletePost(postId: number) {
-    const post = await this.postRepository.findOne({ where: { id: postId } });
+  async deletePost(postId: number, user: User) {
+    const post = await this.postRepository.findOne({
+      where: { id: postId, isDelete: false },
+    });
 
     if (!post) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    }
+
+    if (post.userId !== user.id) {
+      throw new ForbiddenException('본인의 글만 삭제할 수 있습니다.');
     }
 
     await this.postRepository.update({ id: postId }, { isDelete: true });

@@ -5,10 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Post } from './entities/post.entity';
 import { CacheModule } from '@nestjs/cache-manager';
+import { S3Service } from 'src/s3/s3.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Post]), CacheModule.register()],
   controllers: [PostsController],
-  providers: [PostsService],
+  providers: [PostsService, S3Service],
 })
 export class PostsModule {}

@@ -132,15 +132,6 @@ export class PostsService {
     }
 
     let posts = await this.postRepository.find({
-      select: [
-        'title',
-        'userNickname',
-        'viewCnt',
-        'createdAt',
-        'updatedAt',
-        'userId',
-        'category',
-      ],
       where,
     });
 
@@ -164,6 +155,7 @@ export class PostsService {
     content: string,
     category: PostCategory,
     user: User,
+    imgUrl?: string[],
   ) {
     await this.postRepository.save({
       title,
@@ -171,6 +163,7 @@ export class PostsService {
       category,
       userId: user.id,
       userNickname: user.nickname,
+      imgUrl,
     });
   }
 
@@ -180,6 +173,7 @@ export class PostsService {
     content: string,
     category: PostCategory,
     user: User,
+    imgUrl?: string[],
   ) {
     await this.postRepository.save({
       title,
@@ -187,6 +181,7 @@ export class PostsService {
       category,
       userId: user.id,
       userNickname: user.nickname,
+      imgUrl,
     });
   }
 

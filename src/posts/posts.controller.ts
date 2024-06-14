@@ -9,15 +9,15 @@ import {
   UseGuards,
   ForbiddenException,
   Query,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { PostCategory } from './types/post.type';
-import { RolesGuard } from 'src/auth/roles.guard';
 import { Role } from 'src/users/types/userRole.type';
-import { userInfo } from 'os';
 import { User } from 'src/users/entities/user.entity';
 import { UserInfo } from 'src/users/utils/userInfo.decorator';
 import {
@@ -26,13 +26,18 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { S3Service } from 'src/s3/s3.service';
 
 @UseGuards(AuthGuard('jwt'))
 @ApiTags('POST')
 @ApiBearerAuth()
 @Controller('post')
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly s3Service: S3Service,
+  ) {}
 
   @ApiOperation({
     summary: '글 검색',
@@ -96,10 +101,12 @@ export class PostsController {
   }
 
   @ApiOperation({ summary: '게시글 생성', description: '게시글을 생성합니다.' })
+  @UseInterceptors(FilesInterceptor('file', 5))
   @Post()
   async createPost(
     @Body() createPostDto: CreatePostDto,
     @UserInfo() user: User,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
     if (
       createPostDto.category === PostCategory.Notice &&
@@ -108,18 +115,28 @@ export class PostsController {
       throw new ForbiddenException('공지사항은 관리자만 생성 가능합니다.');
     }
 
+    const imgurl = [];
+    await Promise.all(
+      files.map(async (file: Express.Multer.File) => {
+        const key = await this.s3Service.uploadImage(file);
+        imgurl.push(key);
+      }),
+    );
+
     return createPostDto.category === PostCategory.Notice
       ? await this.postsService.createNotice(
           createPostDto.title,
           createPostDto.content,
           createPostDto.category,
           user,
+          imgurl,
         )
       : await this.postsService.createPost(
           createPostDto.title,
           createPostDto.content,
           createPostDto.category,
           user,
+          imgurl,
         );
   }
 

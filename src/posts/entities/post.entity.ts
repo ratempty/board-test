@@ -30,8 +30,8 @@ export class Post {
   @Column({ type: 'int', unsigned: true, default: 0 })
   viewCnt: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  imgUrl: string;
+  @Column({ type: 'json', nullable: true })
+  imgUrl: string[];
 
   @Column({ default: false })
   isDelete: boolean;

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -97,7 +98,22 @@ export class UsersService {
   }
   // 회원정보수정
   async updateUser(user: User, updateUserDto: UpdateUserDto): Promise<User> {
-    await this.userRepository.findOneBy({ id: user.id });
+    if (updateUserDto.email) {
+      const existEmail = await this.userRepository.findOneBy({
+        email: updateUserDto.email,
+      });
+
+      if (existEmail) {
+        throw new ForbiddenException('이미 존재하는 이메일입니다.');
+      }
+    } else if (updateUserDto.nickname) {
+      const existNickname = await this.userRepository.findOneBy({
+        nickname: updateUserDto.nickname,
+      });
+      if (existNickname) {
+        throw new ForbiddenException('이미 존재하는 닉네임입니다.');
+      }
+    }
 
     const hashedPassword = await hash(updateUserDto.password, 10);
 
@@ -129,6 +145,6 @@ export class UsersService {
 
   // 이메일 사용자 찾기
   async findByEmail(email: string) {
-    return await this.userRepository.findOneBy({ email });
+    return this.userRepository.findOne({ where: { email } });
   }
 }

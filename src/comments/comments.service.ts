@@ -5,12 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
-import { Post } from 'src/posts/entities/post.entity';
-import { Role } from 'src/users/types/userRole.type';
-import { PostCategory } from 'src/posts/types/post.type';
+import { Post } from '../posts/entities/post.entity';
+import { Role } from '../users/types/userRole.type';
+import { PostCategory } from '../posts/types/post.type';
 
 @Injectable()
 export class CommentsService {

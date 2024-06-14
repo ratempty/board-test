@@ -17,9 +17,9 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { PostCategory } from './types/post.type';
-import { Role } from 'src/users/types/userRole.type';
-import { User } from 'src/users/entities/user.entity';
-import { UserInfo } from 'src/users/utils/userInfo.decorator';
+import { Role } from '../users/types/userRole.type';
+import { User } from '../users/entities/user.entity';
+import { UserInfo } from '../users/utils/userInfo.decorator';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -27,7 +27,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { S3Service } from 'src/s3/s3.service';
+import { S3Service } from '../s3/s3.service';
 
 @UseGuards(AuthGuard('jwt'))
 @ApiTags('POST')

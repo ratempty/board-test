@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { AuthGuard } from '@nestjs/passport';
-import { UserInfo } from 'src/users/utils/userInfo.decorator';
-import { User } from 'src/users/entities/user.entity';
+import { UserInfo } from '../users/utils/userInfo.decorator';
+import { User } from '../users/entities/user.entity';
 import { userInfo } from 'os';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 

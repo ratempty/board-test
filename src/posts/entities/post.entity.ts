@@ -45,6 +45,9 @@ export class Post {
   @Column({ type: 'int', nullable: false })
   userId: number;
 
+  @Column({ type: 'varchar', nullable: false })
+  userNickname: string;
+
   @ManyToOne(() => User, (user) => user.post)
   user: User;
 

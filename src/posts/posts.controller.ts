@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   ForbiddenException,
+  Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -25,10 +26,23 @@ import { UserInfo } from 'src/users/utils/userInfo.decorator';
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  // 글 검색 - 전체 (제목 + 작성자)
+  @Get('search')
+  async searchPosts(
+    @Query('query') query: string,
+    @Query('target') target: string,
+  ) {
+    return await this.postsService.searchPosts(query, target);
+  }
+
   // 카테고리별 게시글 조회
   @Get('category/:category')
-  async getAllPost(@Param('category') category: PostCategory) {
-    return await this.postsService.getAllPost(category);
+  async getAllPost(
+    @Param('category') category: PostCategory,
+    @Query('orderBy') orderBy: string,
+    @Query('period') period: string,
+  ) {
+    return await this.postsService.getAllPost(category, orderBy, period);
   }
 
   // 게시글 상세 조회
@@ -55,13 +69,13 @@ export class PostsController {
           createPostDto.title,
           createPostDto.content,
           createPostDto.category,
-          user.id,
+          user,
         )
       : await this.postsService.createPost(
           createPostDto.title,
           createPostDto.content,
           createPostDto.category,
-          user.id,
+          user,
         );
   }
 

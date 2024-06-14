@@ -7,11 +7,12 @@ import {
 import { PostCategory } from './types/post.type';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
-import { Repository } from 'typeorm';
+import { Like, MoreThanOrEqual, Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Role } from 'src/users/types/userRole.type';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import * as moment from 'moment';
 
 @Injectable()
 export class PostsService {
@@ -23,11 +24,38 @@ export class PostsService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  //카테고리별 게시글 조회
-  async getAllPost(category: PostCategory) {
+  // 카테고리별 게시글 조회
+  async getAllPost(category: PostCategory, orderBy: string, period: string) {
+    const order = orderBy === 'popular' ? 'viewCnt' : 'createdAt';
+    let where = { category: category, isDelete: false };
+
+    if (orderBy === 'popular') {
+      const now = moment();
+      switch (period) {
+        case 'week':
+          where['createdAt'] = MoreThanOrEqual(
+            now.subtract(7, 'days').toDate(),
+          );
+          break;
+        case 'month':
+          where['createdAt'] = MoreThanOrEqual(
+            now.subtract(1, 'month').toDate(),
+          );
+          break;
+        case 'year':
+          where['createdAt'] = MoreThanOrEqual(
+            now.subtract(1, 'year').toDate(),
+          );
+          break;
+      }
+    }
+
     const posts = await this.postRepository.find({
-      select: ['title', 'user', 'viewCnt', 'createdAt', 'updatedAt'],
-      where: { category: category, isDelete: false },
+      select: ['title', 'userNickname', 'viewCnt', 'createdAt', 'updatedAt'],
+      where,
+      order: {
+        [order]: 'DESC',
+      },
     });
 
     return posts;
@@ -74,18 +102,39 @@ export class PostsService {
     return post;
   }
 
+  // 글 검색 - 전체 (제목 + 작성자)
+  async searchPosts(query: string, target?: string) {
+    let where: any = [
+      { title: Like(`%${query}%`) },
+      { userNickname: Like(`%${query}%`) },
+    ];
+
+    if (target === 'title') {
+      where = { title: Like(`%${query}%`) };
+    } else if (target === 'user') {
+      where = { userNickname: Like(`%${query}%`) };
+    }
+
+    const posts = await this.postRepository.find({
+      select: ['title', 'userNickname', 'viewCnt', 'createdAt', 'updatedAt'],
+      where,
+    });
+
+    return posts;
+  }
   //공지사항 생성
   async createNotice(
     title: string,
     content: string,
     category: PostCategory,
-    userId: number,
+    user: User,
   ) {
     await this.postRepository.save({
       title,
       content,
       category,
-      userId,
+      userId: user.id,
+      userNickname: user.nickname,
     });
   }
 
@@ -94,13 +143,14 @@ export class PostsService {
     title: string,
     content: string,
     category: PostCategory,
-    userId: number,
+    user: User,
   ) {
     await this.postRepository.save({
       title,
       content,
       category,
-      userId,
+      userId: user.id,
+      userNickname: user.nickname,
     });
   }
 

@@ -109,13 +109,17 @@ export class PostsService {
     const cached = await this.cacheManager.get(cacheKey);
 
     if (!cached) {
-      post.viewCnt += 1;
-      await this.postRepository.save(post);
+      await this.postRepository.update(postId, { viewCnt: post.viewCnt + 1 });
 
       await this.cacheManager.set(cacheKey, true, 86400);
     }
 
-    return post;
+    const updatedPost = await this.postRepository.findOneBy({
+      id: postId,
+      isDelete: false,
+    });
+
+    return updatedPost;
   }
 
   // 글 검색 - 전체 (제목 + 작성자)

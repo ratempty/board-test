@@ -25,7 +25,7 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v1
         with:
-          images: boardTest
+          images: boardtest
           tag-semver: |
             latest
       - name: Set up Docker Buildx
@@ -42,7 +42,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/boardTest:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/boardtest:latest
   deploy:
     needs: build
     name: Deploy
@@ -71,5 +71,5 @@ jobs:
 
       - name: Docker run
         run: |
-          docker stop boardTest && docker rm boardTest && docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/boardTest:latest
-          docker run -d -p 3000:3000 --name boardTest --restart always --env-file .env ${{ secrets.DOCKERHUB_USERNAME }}/boardTest:latest
+          docker stop boardtest && docker rm boardtest && docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/boardtest:latest
+          docker run -d -p 3000:3000 --name boardtest --restart always --env-file .env ${{ secrets.DOCKERHUB_USERNAME }}/boardtest:latest

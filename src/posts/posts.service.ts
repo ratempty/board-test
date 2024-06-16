@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
 import { Like, MoreThanOrEqual, Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { Comment } from '../comments/entities/comment.entity';
 import { Role } from '../users/types/userRole.type';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -21,6 +22,8 @@ export class PostsService {
     private postRepository: Repository<Post>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Comment)
+    private commentRepository: Repository<Comment>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -199,7 +202,7 @@ export class PostsService {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
 
-    const updatedNotice = await this.postRepository.update(
+    await this.postRepository.update(
       { id: postId, isDelete: false },
       {
         title,
@@ -207,7 +210,7 @@ export class PostsService {
       },
     );
 
-    return updatedNotice;
+    return { message: '게시글이 수정되었습니다.' };
   }
 
   //Q&A or 1:1 수정
@@ -224,12 +227,9 @@ export class PostsService {
       throw new ForbiddenException('본인의 글만 수정할 수 있습니다.');
     }
 
-    const updatedPost = await this.postRepository.update(
-      { id: postId },
-      { title, content },
-    );
+    await this.postRepository.update({ id: postId }, { title, content });
 
-    return updatedPost;
+    return { message: '게시글이 수정되었습니다.' };
   }
 
   //공지사항 삭제
@@ -243,6 +243,20 @@ export class PostsService {
     }
 
     await this.postRepository.update({ id: postId }, { isDelete: true });
+
+    const comments = await this.commentRepository.find({
+      where: { postId },
+    });
+
+    if (comments.length > 0) {
+      await Promise.all(
+        comments.map((comment) => {
+          this.commentRepository.update({ postId }, { isDelete: true });
+        }),
+      );
+    }
+
+    return { message: '게시글이 삭제되었습니다.' };
   }
 
   //Q&A or 1:1 삭제
@@ -255,10 +269,22 @@ export class PostsService {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
 
-    if (post.userId !== user.id) {
+    if (user.role !== Role.Admin && post.userId !== user.id) {
       throw new ForbiddenException('본인의 글만 삭제할 수 있습니다.');
     }
 
     await this.postRepository.update({ id: postId }, { isDelete: true });
+
+    const comments = await this.commentRepository.find({
+      where: { postId },
+    });
+
+    await Promise.all(
+      comments.map((comment) => {
+        this.commentRepository.update({ postId }, { isDelete: true });
+      }),
+    );
+
+    return { message: '게시글이 삭제되었습니다.' };
   }
 }

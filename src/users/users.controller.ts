@@ -35,9 +35,9 @@ export class UsersController {
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
-  @Get('profile/:userId')
-  async findUser(@Param('userId') userId: number): Promise<User> {
-    return await this.usersService.findUser(userId);
+  @Get('profile')
+  async findUser(@UserInfo() user: User): Promise<User> {
+    return await this.usersService.findUser(user);
   }
 
   @ApiOperation({
@@ -115,12 +115,13 @@ export class UsersController {
     return updatedUser;
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
     summary: '회원탈퇴',
     description: '회원정보를 삭제합니다.',
   })
-  @Delete('delete/:userId')
-  async deleteUser(@Param('userId') userId: number) {
-    await this.usersService.deleteUser(userId);
+  @Delete('delete')
+  async deleteUser(@UserInfo() user: User) {
+    await this.usersService.deleteUser(user);
   }
 }

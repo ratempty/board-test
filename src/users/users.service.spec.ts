@@ -10,6 +10,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Role } from './types/userRole.type';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword'),
@@ -31,6 +32,7 @@ describe('UsersService', () => {
     userRepositoryMock = {
       save: jest.fn(),
       findOne: jest.fn(),
+      findBy: jest.fn(),
       findOneBy: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -64,6 +66,7 @@ describe('UsersService', () => {
     const nickname = 'testuser';
 
     userRepositoryMock.findOne.mockResolvedValueOnce(null);
+    userRepositoryMock.findOne.mockResolvedValueOnce(null);
 
     await userService.register(email, password, passwordConfirm, nickname);
 
@@ -85,7 +88,8 @@ describe('UsersService', () => {
       nickname: 'testuser',
     };
 
-    userRepositoryMock.findOne.mockResolvedValue(existEmail);
+    userRepositoryMock.findOne.mockResolvedValueOnce(existEmail);
+    userRepositoryMock.findOne.mockResolvedValueOnce(null);
 
     await expect(
       userService.register(
@@ -105,6 +109,9 @@ describe('UsersService', () => {
       nickname: 'testuser',
     };
 
+    userRepositoryMock.findOne.mockResolvedValueOnce(null);
+    userRepositoryMock.findOne.mockResolvedValueOnce(null);
+
     await expect(
       userService.register(
         user.email,
@@ -113,6 +120,28 @@ describe('UsersService', () => {
         user.nickname,
       ),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('conflict exception with exist nickname', async () => {
+    const existNickname = { email: 'test@test.com', id: 1, nickname: 'abc' };
+    const user = {
+      email: 'test@test.com',
+      password: 'password',
+      passwordConfirm: 'password',
+      nickname: 'abc',
+    };
+
+    userRepositoryMock.findOne.mockResolvedValueOnce(null);
+    userRepositoryMock.findOne.mockResolvedValueOnce(existNickname);
+
+    await expect(
+      userService.register(
+        user.email,
+        user.password,
+        user.password,
+        user.nickname,
+      ),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('Login success', async () => {
@@ -149,43 +178,66 @@ describe('UsersService', () => {
   });
 
   it('Find user success', async () => {
-    const userId = 1;
-
-    const user = {
+    const mockUser: User = {
       id: 1,
       email: 'test@test.com',
+      password: 'hashedPassword',
       nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
     };
 
-    userRepositoryMock.findOne.mockResolvedValue(user);
+    userRepositoryMock.findOne.mockResolvedValue(mockUser);
 
-    const result = await userService.findUser(userId);
+    const result = await userService.findUser(mockUser);
 
-    expect(result).toEqual(user);
+    expect(result).toEqual(mockUser);
   });
 
   it('Find user failed', async () => {
-    const userId = 2;
+    const mockUser: User = {
+      id: 1,
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
 
     userRepositoryMock.findOne.mockResolvedValue(null);
 
-    await expect(userService.findUser(userId)).rejects.toThrow(
+    await expect(userService.findUser(mockUser)).rejects.toThrow(
       NotFoundException,
     );
   });
 
   it('Update user success', async () => {
-    const updateUserDto = {
-      email: 'test@test.com',
-      password: '123123',
-      nickname: 'tester',
-    };
-
-    const resultUser = {
+    const mockUser: User = {
       id: 1,
       email: 'test@test.com',
       password: 'hashedPassword',
       nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
+    const updateUserDto = {
+      email: 'tester@test.com',
+      password: 'hased',
+      nickname: 'rate',
+    };
+    const resultUser = {
+      id: 1,
+      email: 'tester@test.com',
+      nickname: 'rate',
     };
 
     userRepositoryMock.update.mockResolvedValue(resultUser);
@@ -195,19 +247,24 @@ describe('UsersService', () => {
       nickname: resultUser.nickname,
     });
 
-    const result = await userService.updateUser(
-      updateUserDto as User,
-      updateUserDto,
-    );
+    const result = await userService.updateUser(mockUser, updateUserDto);
 
-    expect(result).toEqual({
-      id: resultUser.id,
-      email: resultUser.email,
-      nickname: resultUser.nickname,
-    });
+    expect(result).toEqual(resultUser);
   });
 
   it('Update user with exist email', async () => {
+    const mockUser: User = {
+      id: 1,
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
+
     const updateUserDto = {
       email: 'test@test.com',
       password: '123123',
@@ -224,33 +281,106 @@ describe('UsersService', () => {
     userRepositoryMock.findOneBy.mockResolvedValue(existUser);
 
     await expect(
-      userService.updateUser(updateUserDto as User, updateUserDto),
+      userService.updateUser(mockUser, updateUserDto),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('Update user with exist nickname', async () => {
+    const mockUser: User = {
+      id: 1,
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
+
+    const updateUserDto = {
+      password: '123123',
+      nickname: 'aaa',
+    };
+
+    const mockExistUser: User = {
+      id: 1,
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      nickname: 'aaa',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
+
+    userRepositoryMock.findOneBy.mockResolvedValue(mockExistUser);
+
+    await expect(
+      userService.updateUser(mockUser, updateUserDto),
     ).rejects.toThrow(ForbiddenException);
   });
 
   it('Withdraw success', async () => {
-    const userId = 1;
-    const user = {
+    const user: User = {
       id: 1,
       email: 'test@test.com',
-      nickname: 'asd',
+      password: 'hashedPassword',
+      nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
     };
 
     userRepositoryMock.findOneBy.mockResolvedValue(user);
 
-    await userService.deleteUser(userId);
+    await userService.deleteUser(user);
 
-    expect(userRepositoryMock.findOneBy).toHaveBeenCalledWith({ id: userId });
-    expect(userRepositoryMock.delete).toHaveBeenCalledWith({ id: userId });
+    expect(userRepositoryMock.findOneBy).toHaveBeenCalledWith({ id: user.id });
+    expect(userRepositoryMock.delete).toHaveBeenCalledWith({ id: user.id });
   });
 
   it('witdraw failed', async () => {
-    const userId = 1;
+    const user: User = {
+      id: 1,
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
 
     userRepositoryMock.findOneBy.mockResolvedValue(null);
 
-    await expect(userService.deleteUser(userId)).rejects.toThrow(
+    await expect(userService.deleteUser(user)).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  it('find by email success', async () => {
+    const userId = 1;
+    const mockUser: User = {
+      id: 1,
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      nickname: 'tester',
+      role: Role.User,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      post: [],
+      comment: [],
+    };
+
+    userRepositoryMock.findOne.mockResolvedValue(mockUser);
+
+    const foundUser = await userService.findByUserId(userId);
+
+    expect(foundUser).toEqual(mockUser);
   });
 });

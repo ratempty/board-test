@@ -2,17 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PostsService } from './posts.service';
 import { Post } from './entities/post.entity';
 import { Repository } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Role } from '../users/types/userRole.type';
 import { PostCategory } from './types/post.type';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Comment } from '../comments/entities/comment.entity';
 
 describe('PostsService', () => {
   let postService: PostsService;
   let postRepositoryMock: Partial<Record<keyof Repository<Post>, jest.Mock>>;
   let userRepositoryMock: Partial<Record<keyof Repository<User>, jest.Mock>>;
+  let commentRepositoryMock: Partial<
+    Record<keyof Repository<Comment>, jest.Mock>
+  >;
   let cacheManagerMock: Partial<Record<keyof Cache, jest.Mock>>;
 
   beforeEach(async () => {
@@ -23,6 +27,11 @@ describe('PostsService', () => {
       delete: jest.fn(),
       update: jest.fn(),
       findOneBy: jest.fn(),
+    };
+
+    commentRepositoryMock = {
+      find: jest.fn(),
+      update: jest.fn(),
     };
 
     userRepositoryMock = {
@@ -48,6 +57,10 @@ describe('PostsService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: cacheManagerMock,
+        },
+        {
+          provide: 'CommentRepository',
+          useValue: commentRepositoryMock,
         },
       ],
     }).compile();
@@ -697,7 +710,7 @@ describe('PostsService', () => {
 
     const result = await postService.updateNotice(title, content, postId);
 
-    expect(result).toEqual(updatePost);
+    expect(result).toEqual({ message: '게시글이 수정되었습니다.' });
   });
 
   it('not found notice', async () => {
@@ -764,7 +777,7 @@ describe('PostsService', () => {
       mockUser,
     );
 
-    expect(result).toEqual(updatePost);
+    expect(result).toEqual({ message: '게시글이 수정되었습니다.' });
   });
 
   it('update post not found exception', async () => {
@@ -841,21 +854,20 @@ describe('PostsService', () => {
       userId: 2,
       userNickname: 'aaa',
     };
-    const deletePost = {
-      id: 1,
-      title: 'test',
-      content: 'comet',
-      category: PostCategory.Notice,
-      viewCnt: 2,
-      imgUrl: null,
-      isDelete: true,
-      createdAt: '2024-06-13T22:00:38.755Z',
-      updatedAt: '2024-06-13T22:01:28.000Z',
-      userId: 2,
-      userNickname: 'aaa',
+    const commentMock = {
+      content: 'test 내용',
+      userNickname: 'tester',
+      postId: 1,
+      userId: 1,
+      parentCommentId: 1,
+      id: 2,
+      createdAt: '2024-06-14T06:46:47.230Z',
+      updatedAt: '2024-06-14T06:46:47.230Z',
+      isDelete: false,
     };
 
     postRepositoryMock.findOne.mockResolvedValue(mockPost);
+    commentRepositoryMock.find.mockResolvedValue([commentMock]);
 
     await postService.deleteNotice(postId);
 
@@ -904,8 +916,20 @@ describe('PostsService', () => {
       userId: 1,
       userNickname: 'aaa',
     };
+    const commentMock = {
+      content: 'test 내용',
+      userNickname: 'tester',
+      postId: 1,
+      userId: 1,
+      parentCommentId: 1,
+      id: 2,
+      createdAt: '2024-06-14T06:46:47.230Z',
+      updatedAt: '2024-06-14T06:46:47.230Z',
+      isDelete: false,
+    };
 
     postRepositoryMock.findOne.mockResolvedValue(mockPost);
+    commentRepositoryMock.find.mockResolvedValue([commentMock]);
 
     await postService.deletePost(postId, mockUser);
 

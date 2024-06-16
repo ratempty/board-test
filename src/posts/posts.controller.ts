@@ -144,28 +144,40 @@ export class PostsController {
     summary: '게시글 수정',
     description: '해당 게시글을 수정합니다.',
   })
+  @UseInterceptors(FilesInterceptor('file', 5))
   @Patch(':postId/category/:category')
   async updatePost(
     @Body() updatePostDto: UpdatePostDto,
     @UserInfo() user: User,
     @Param('postId') postId: number,
     @Param('category') category: PostCategory,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
     if (category === PostCategory.Notice && user.role !== Role.Admin) {
       throw new ForbiddenException('공지사항은 관리자만 수정 가능합니다.');
     }
+
+    const imgurl = [];
+    await Promise.all(
+      files.map(async (file: Express.Multer.File) => {
+        const key = await this.s3Service.uploadImage(file);
+        imgurl.push(key);
+      }),
+    );
 
     return category === PostCategory.Notice
       ? await this.postsService.updateNotice(
           updatePostDto.title,
           updatePostDto.content,
           postId,
+          imgurl,
         )
       : await this.postsService.updatePost(
           updatePostDto.title,
           updatePostDto.content,
           postId,
           user,
+          imgurl,
         );
   }
 

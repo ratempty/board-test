@@ -6,9 +6,13 @@ import { User } from '../users/entities/user.entity';
 import { Post } from './entities/post.entity';
 import { CacheModule } from '@nestjs/cache-manager';
 import { S3Service } from '../s3/s3.service';
+import { Comment } from '../comments/entities/comment.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Post]), CacheModule.register()],
+  imports: [
+    TypeOrmModule.forFeature([User, Post, Comment]),
+    CacheModule.register(),
+  ],
   controllers: [PostsController],
   providers: [PostsService, S3Service],
 })

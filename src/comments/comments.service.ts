@@ -48,8 +48,8 @@ export class CommentsService {
       throw new NotFoundException('대상 댓글을 찾을 수 없습니다.');
     }
 
-    const reply = await this.commentRepository.findOne({
-      where: { parentCommentId },
+    const reply = await this.commentRepository.findOneBy({
+      parentCommentId,
     });
 
     if (reply) {
@@ -69,32 +69,23 @@ export class CommentsService {
   // 댓글 조회
   async getComments(postId: number, user: User) {
     const post = await this.postRepository.findOne({
-      where: { id: postId },
+      where: { id: postId, isDelete: false },
     });
 
     if (!post) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
 
-    if (
-      post.category === PostCategory.Inquiry &&
-      post.userId !== user.id &&
-      user.role !== Role.Admin
-    ) {
-      throw new ForbiddenException('글을 확인할 권한이 없습니다.');
+    if (post.category === PostCategory.Inquiry) {
+      if (post.userId !== user.id && user.role !== Role.Admin) {
+        throw new ForbiddenException('글을 확인할 권한이 없습니다.');
+      }
     }
 
     const comments = await this.commentRepository.find({
       where: { postId, parentComment: null },
-      relations: ['replies'],
       order: { createdAt: 'ASC' },
     });
-
-    await Promise.all(
-      comments.map(async (comment) => {
-        comment.replies = await this.getReplies(comment.id);
-      }),
-    );
 
     comments.forEach((comment) => {
       if (comment.isDelete) {
@@ -103,12 +94,6 @@ export class CommentsService {
     });
 
     return comments;
-  }
-
-  async getReplies(parentCommentId: number) {
-    return await this.commentRepository.find({
-      where: { parentCommentId },
-    });
   }
 
   // 댓글 수정
@@ -125,12 +110,13 @@ export class CommentsService {
       throw new ForbiddenException('댓글을 수정할 권한이 없습니다.');
     }
 
-    const updatedComment = await this.commentRepository.update(
-      { id: commentId },
-      { content },
-    );
+    await this.commentRepository.update({ id: commentId }, { content });
 
-    return updatedComment;
+    await this.commentRepository.findOne({
+      where: { id: commentId, isDelete: false },
+    });
+
+    return { message: '댓글이 수정되었습니다.' };
   }
 
   // 댓글 삭제
@@ -143,10 +129,12 @@ export class CommentsService {
       throw new NotFoundException('댓글을 찾을 수 없습니다.');
     }
 
-    if (comment.userId !== user.id || user.role === Role.Admin) {
-      throw new ForbiddenException('댓글을 삭제할 권한이 없습니다.');
+    if (user.role !== Role.Admin && comment.userId !== user.id) {
+      throw new ForbiddenException('본인의 댓글만 삭제할 수 있습니다.');
     }
 
     await this.commentRepository.update({ id: commentId }, { isDelete: true });
+
+    return { message: '댓글이 삭제 되었습니다.' };
   }
 }

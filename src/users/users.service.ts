@@ -28,11 +28,18 @@ export class UsersService {
     passwordConfirm: string,
     nickname: string,
   ) {
-    // 중복 이메일 확인
+    // 중복 확인
     const existEmail = await this.findByEmail(email);
+    const existNickname = await this.userRepository.findOne({
+      where: { nickname },
+    });
 
     if (existEmail) {
       throw new ConflictException('해당 이메일은 사용할 수 없습니다.');
+    }
+
+    if (existNickname) {
+      throw new ConflictException('해당 닉네임은 사용할 수 없습니다.');
     }
 
     // 비밀번호 일치 확인
@@ -84,13 +91,13 @@ export class UsersService {
   }
 
   // 회원정보조회
-  async findUser(userId: number) {
-    const user = await this.userRepository.findOne({
+  async findUser(user: User) {
+    const findUser = await this.userRepository.findOne({
       select: ['id', 'email', 'nickname'],
-      where: { id: userId },
+      where: { id: user.id },
     });
 
-    if (!user) {
+    if (!findUser) {
       throw new NotFoundException('유저 정보를 찾을 수 없습니다.');
     }
 
@@ -133,18 +140,22 @@ export class UsersService {
   }
 
   // 회원탈퇴
-  async deleteUser(userId: number) {
-    const user = await this.userRepository.findOneBy({ id: userId });
+  async deleteUser(user: User) {
+    const findUser = await this.userRepository.findOneBy({ id: user.id });
 
-    if (!user) {
+    if (!findUser) {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
-
-    await this.userRepository.delete({ id: userId });
+    await this.userRepository.delete({ id: user.id });
   }
 
   // 이메일 사용자 찾기
   async findByEmail(email: string) {
     return this.userRepository.findOne({ where: { email } });
+  }
+
+  // 유저 아이디로 사용자 찾기
+  async findByUserId(userId: number) {
+    return this.userRepository.findOne({ where: { id: userId } });
   }
 }

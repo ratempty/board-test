@@ -47,7 +47,9 @@ export class Comment {
   @ManyToOne(() => Post, (post) => post.comment, { onDelete: 'CASCADE' })
   post: Post;
 
-  @ManyToOne(() => Comment, (comment) => comment.replies)
+  @ManyToOne(() => Comment, (comment) => comment.replies, {
+    onDelete: 'CASCADE',
+  })
   parentComment: Comment;
 
   @OneToMany(() => Comment, (comment) => comment.parentComment)

@@ -48,7 +48,7 @@ export class Post {
   @Column({ type: 'varchar', nullable: false })
   userNickname: string;
 
-  @ManyToOne(() => User, (user) => user.post)
+  @ManyToOne(() => User, (user) => user.post, { onDelete: 'CASCADE' })
   user: User;
 
   @OneToMany(() => Comment, (comment) => comment.post)

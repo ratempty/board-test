@@ -193,7 +193,12 @@ export class PostsService {
   }
 
   //공지사항 수정
-  async updateNotice(title: string, content: string, postId: number) {
+  async updateNotice(
+    title: string,
+    content: string,
+    postId: number,
+    imgUrl?: string[],
+  ) {
     const notice = await this.postRepository.findOne({
       where: { id: postId, isDelete: false },
     });
@@ -207,6 +212,7 @@ export class PostsService {
       {
         title,
         content,
+        imgUrl,
       },
     );
 
@@ -214,7 +220,13 @@ export class PostsService {
   }
 
   //Q&A or 1:1 수정
-  async updatePost(title: string, content: string, postId: number, user: User) {
+  async updatePost(
+    title: string,
+    content: string,
+    postId: number,
+    user: User,
+    imgUrl?: string[],
+  ) {
     const post = await this.postRepository.findOne({
       where: { id: postId, isDelete: false },
     });
@@ -227,7 +239,10 @@ export class PostsService {
       throw new ForbiddenException('본인의 글만 수정할 수 있습니다.');
     }
 
-    await this.postRepository.update({ id: postId }, { title, content });
+    await this.postRepository.update(
+      { id: postId },
+      { title, content, imgUrl },
+    );
 
     return { message: '게시글이 수정되었습니다.' };
   }
